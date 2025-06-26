@@ -100,7 +100,7 @@ wheels = [
 
 [[package]]
 name = "gmail-mcp-server"
-version = "1.0.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
@@ -108,7 +108,6 @@ dependencies = [
     { name = "google-auth-httplib2" },
     { name = "google-auth-oauthlib" },
     { name = "mcp", extra = ["cli"] },
-    { name = "python-dotenv" },
     { name = "requests" },
 ]
 
@@ -119,7 +118,6 @@ requires-dist = [
     { name = "google-auth-httplib2", specifier = ">=0.2.0" },
     { name = "google-auth-oauthlib", specifier = ">=1.2.2" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.9.4" },
-    { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "requests", specifier = ">=2.32.4" },
 ]
 

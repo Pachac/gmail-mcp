@@ -1,6 +1,6 @@
 [project]
 name = "gmail-mcp-server"
-version = "1.0.0"
+version = "0.1.1"
 description = "MCP Server for google mail to be used by agents."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -10,7 +10,6 @@ dependencies = [
     "google-auth-httplib2>=0.2.0",
     "google-auth-oauthlib>=1.2.2",
     "mcp[cli]>=1.9.4",
-    "python-dotenv>=1.1.0",
     "requests>=2.32.4",
 ]
 keywords = ["mcp", "gmail"]
