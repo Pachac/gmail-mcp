@@ -5,10 +5,13 @@ description = "MCP Server for google mail to be used by agents."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "beautifulsoup4>=4.13.4",
     "google-api-python-client>=2.173.0",
     "google-auth-httplib2>=0.2.0",
     "google-auth-oauthlib>=1.2.2",
     "mcp[cli]>=1.9.4",
+    "python-dotenv>=1.1.0",
+    "requests>=2.32.4",
 ]
 keywords = ["mcp", "gmail"]
 

@@ -1,15 +1,12 @@
-import os.path
-
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from bs4 import BeautifulSoup
 from pydantic import BaseModel
+from datetime import date, timedelta
 
-# If modifying these scopes, delete the file token.json.
-SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
+import base64
+
 
 class MessagePreview(BaseModel):
     """Model for a message preview."""
@@ -19,6 +16,8 @@ class MessagePreview(BaseModel):
     preview: str
     received_date: str
     unread: bool = False
+    label_ids: list[str] = []  # List of label IDs associated with the message
+    
 
 class Label(BaseModel):
     """Model for a Gmail label."""
@@ -28,32 +27,10 @@ class Label(BaseModel):
     message_list_visibility: str = "show"  # Default visibility is 'show'
     label_list_visibility: str = "labelShow"  # Default label visibility is 'labelShow'
 
-def authenticate():
-    """Shows basic usage of the Gmail API.
-    Lists the user's Gmail labels.
-    """
-    creds = None
-  # The file token.json stores the user's access and refresh tokens, and is
-  # created automatically when the authorization flow completes for the first
-  # time.
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-  # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-            "credentials.json", SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open("token.json", "w") as token:
-        token.write(creds.to_json())
-    return creds
 
-def query_emails(creds, after_date: str, before_date: str, unread_only: bool = False):
+def query_emails(creds, after_date: str, before_date: str, unread_only: bool = False) -> list[MessagePreview]:
     """Query emails using the Gmail API."""
+    before_date = (date.fromisoformat(before_date) + timedelta(days=1)).isoformat()
     service = build("gmail", "v1", credentials=creds)
     query = f"after:{after_date} before:{before_date}"
     if unread_only:
@@ -69,20 +46,36 @@ def query_emails(creds, after_date: str, before_date: str, unread_only: bool = F
             sender=[header["value"] for header in msg["payload"]["headers"] if header["name"] == "From"][0] if any(header["name"] == "From" for header in msg["payload"]["headers"]) else "Unknown Sender",
             preview=msg["snippet"],
             received_date=[header["value"] for header in msg["payload"]["headers"] if header["name"] == "Date"][0] if any(header["name"] == "Date" for header in msg["payload"]["headers"]) else "Unknown Date",
-            unread=msg["labelIds"] and "UNREAD" in msg["labelIds"]
+            unread=msg["labelIds"] and "UNREAD" in msg["labelIds"],
+            label_ids=msg.get("labelIds", []),
         ))
     return previews
 
-def get_email_body(creds, message_id: str):
+def get_email_text(payload):
+    """Extract text from the email payload."""
+    if payload["mimeType"].startswith("multipart/"):
+        return get_email_text(payload["parts"][0])
+    elif payload["mimeType"] == "text/html":
+        decoded = base64.urlsafe_b64decode(payload["body"]["data"]).decode("utf-8")
+        soup = BeautifulSoup(decoded, "html.parser")
+        return soup.get_text(strip=True, separator="\n")
+    elif payload["mimeType"] == "text/plain":
+        return base64.urlsafe_b64decode(payload["body"]["data"]).decode("utf-8")
+    else:
+        print(f"Unsupported MIME type: {payload['mimeType']}")
+        return base64.urlsafe_b64decode(payload["body"]["data"]).decode("utf-8")
+
+
+def get_email_body(creds, message_id: str) -> str | None:
     """Get detailed information about a specific email."""
     service = build("gmail", "v1", credentials=creds)
     try:
         message = service.users().messages().get(userId="me", id=message_id, format="full").execute()
-        return message.get("payload", {}).get("body", {}).get("data", None)
+        return get_email_text(message["payload"])
     except HttpError as error:
         print(f"An error occurred: {error}")
         return None
-
+    
 def label_email(creds, message_id: str, label_ids: list):
     """Label an email with specified labels."""
     service = build("gmail", "v1", credentials=creds)
@@ -112,7 +105,7 @@ def remove_label_from_email(creds, message_id: str, label_id: str):
         return False
     
 
-def mark_email_as_read(creds, message_id: str):
+def mark_as_read(creds, message_id: str):
     """Mark an email as read."""
     return remove_label_from_email(creds, message_id, "UNREAD")
 
