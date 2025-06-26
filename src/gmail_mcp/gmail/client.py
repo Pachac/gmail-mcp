@@ -3,7 +3,7 @@ from googleapiclient.errors import HttpError
 
 from bs4 import BeautifulSoup
 from pydantic import BaseModel
-from datetime import date, timedelta
+from datetime import datetime
 
 import base64
 
@@ -30,9 +30,11 @@ class Label(BaseModel):
 
 def query_emails(creds, after_date: str, before_date: str, unread_only: bool = False) -> list[MessagePreview]:
     """Query emails using the Gmail API."""
-    before_date = (date.fromisoformat(before_date) + timedelta(days=1)).isoformat()
+    before_date = datetime.fromisoformat(before_date).strftime("%s")
+    after_date = datetime.fromisoformat(after_date).strftime("%s")
     service = build("gmail", "v1", credentials=creds)
     query = f"after:{after_date} before:{before_date}"
+    print(f"Querying emails with query: {query}")
     if unread_only:
         query += " is:unread"
     result = service.users().messages().list(userId="me", q=query).execute()

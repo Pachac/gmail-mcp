@@ -12,16 +12,16 @@ mcp = FastMCP("Gmail MCP Server", "1.0.0")
 
 
 @mcp.tool()
-def get_emails(date_from: str, date_to: str, unread_only: bool = False) -> gmail_client.MessagePreview:
+def get_emails(datetime_from: str, datetime_to: str, unread_only: bool = False) -> list[gmail_client.MessagePreview]:
     """Get email previews from Gmail.
     Args:
-        date_from (str): The date in YYYY-MM-DD format to filter emails from.
-        date_to (str): The date in YYYY-MM-DD format to filter emails to.
+        datetime_from (str): The date in YYYY-MM-DDTHH:MM:SS format to filter emails from.
+        datetime_to (str): The date in YYYY-MM-DDTHH:MM:SS format to filter emails to.
         unread_only (bool): Whether to filter for unread emails only.
     Returns:
         List[gmail_client.MessagePreview]: A list of email previews with basic metadata.
     """
-    messages = gmail_client.query_emails(gmail_creds, after_date=date_from, before_date=date_to, unread_only=unread_only)
+    messages = gmail_client.query_emails(gmail_creds, after_date=datetime_from, before_date=datetime_to, unread_only=unread_only)
     return messages
 
 @mcp.tool()
